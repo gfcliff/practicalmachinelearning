@@ -1,0 +1,200 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Gabriel Filc"
+date: "2/11/2021"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+# PROJECT REPORT
+
+For this project, we are given data from accelerometers on the belt, forearm, arm, and dumbell of 6 research study participants. Our training data consists of accelerometer data and a label identifying the quality of the activity the participant was doing. Our testing data consists of accelerometer data without the identifying label. Our goal is to predict the labels for the test set observations. The source of the data is: Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+# How I built the model
+In order to build a model I previously conducted an exploratory data analysis. Through the "skimmed" function I identified several variables with a high number of missing observations. Those variables with more than 65% of NAs were excluded. Additionally, seven variables that do not seem to have an effect on the result were removed (X, user_name, raw_timestamp_part_1, raw_timestamp_part_2, cvtd_timestamp, new_window and num_window).
+
+Feature selection was made based on several plots of the remaining variables. These graphs were based on the training set in order not to affect cross-validation. Through them I tried to identify imbalance in outcomes/predictors. The density plots did not clearly identify any feature that could be removed, even though they suggested that variables related to the belt and to the dumbbell´s accelerometers were the most relevant. 
+
+
+# How I used cross validation, 
+Probably the simplest and most widely used method for estimating prediction error is cross-validation. This method directly estimates the expected extra-sample error Err = E[L(Y, fˆ(X))], the average generalization error when the method fˆ(X) is applied to an independent test sample from the joint distribution of X and Y . As mentioned earlier, we might hope that cross-validation estimates the conditional error, with the training set T held fixed. But as we will see in Section 7.12, cross-validation typically estimates well only the expected prediction error. # Because I want to be able to estimate the out-of-sample error, I randomly split the full training data (ptrain) into a smaller training set (ptrain1) and a validation set (ptrain2) as the The test data renamed: valid_in (validate data) will stay as is and will be used later to test the prodction algorithm on the 20 cases. It should be noted that Random Forest model does not need to perform cross-validation on a testing set because... However, I performed it anyway because the GML model required thid step.
+
+# Expected out of sample error
+
+I will report the Random Forest´s model out of sample error as it is the one that I chose to make the final prediction.
+When the cross validation is done predicting on the testing set, the accuracy is 99,01%, thus the expected out of sample error is 0,99%. When calculated through the random forest model estimationinternal process, the OOB error estimate is 0.8%.
+
+
+# Methodological choices justification 
+
+As stated previously, I am not interested to explain, thus, random forests and boosting models were the best choice. Both models were fitted and its accuracy compared in order to select the best predictor.
+
+The Confusion Matrixes of the Gradient Boosting and Random Forest models show a 96% accuracy and 99% accuracy respectively. Thus, I chose to use the Random Forest Model for the prediction on the validation data set.
+
+
+
+
+## TRAINING; TESTING AND VALIDATION DATA-SETS CREATION
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# getting data
+setwd("C:/Users/gabri/Dropbox/Gabi/temas de interes/dataanalisis/R/curso JH/machine learning")
+library(caret)
+library(dplyr)
+library(skimr)
+library(lattice)
+training.data.set <- read.csv("pml-training.csv", na.strings = c("", "NA"), header = TRUE)
+validation.data.set <- read.csv("pml-testing.csv", na.strings = c("", "NA"), header = TRUE)
+training.data.set$classe <- as.factor(training.data.set$classe)
+#validation.data.set$classe <- as.factor(validation.data.set$classe)
+# para resolver este error probar con esto: https://stackoverflow.com/questions/47232728/error-in-dataframe-tmp-replacement-has-x-data-has-y
+# el problema es que no esta la variable classe, hay directamente un resultado numerico
+set.seed(2631)
+traintestclass <- createDataPartition(y=training.data.set$classe, p=0.65, list=FALSE)
+training <- training.data.set[traintestclass, ] ; testing <- training.data.set[-traintestclass, ]
+
+```
+
+ 
+## EXPLORATORY DATA ANALYSIS: DESCRIPTIVE STATISTICS
+
+```{r}
+# irrelevant explicative factors are deleted
+training <- training[,-c(1:7)]
+validation.data.set <- validation.data.set[,-c(1:7)]
+skimmed <- skim_to_wide(training)
+skimmed[, c(1:5, 9:11, 13, 15:16)]
+```
+
+## THOSE EXPLICATIVE VARIABLES WITH MORE THAN 65% NA ARE DELETED
+```{r}
+training <- training[colSums(is.na(training))/nrow(training) < .35]
+validation.data.set <- validation.data.set[colSums(is.na(validation.data.set))/nrow(validation.data.set) < .35]
+
+```
+
+
+
+## EXPLORATORY DATA ANALYSIS: Visualizing the importance of explicative variables
+In this case, for a variable to be important, I would expect the density curves to be significantly different for the 5 classes, both in terms of the height (kurtosis) and placement (skewness). However, it is not possible to eliminate any variable based on these plots (belt, arm, forearm and dumbbell).
+
+
+```{r}
+beltCols <- grep("belt$", names(training), value = TRUE)
+featurePlot(x = training[, beltCols[1:4]], 
+            y = training$classe,
+            plot = "density", 
+            ## Pass in options to xyplot() to 
+            ## make it prettier
+            scales = list(x = list(relation="free"), 
+                          y = list(relation="free")), 
+            adjust = 1.5, 
+            pch = "|", 
+            layout = c(1, 4), 
+            auto.key = list(columns = 5))
+
+
+#featurePlot(x=training[,c()], y= training$classe, plot="ellipse")
+#featurePlot(y= training$classe, plot="ellipse")
+
+# ARM
+armCols <- grep("arm$", names(training), value = TRUE)
+#transparentTheme(trans = .9)
+featurePlot(x = training[, armCols[1:4]], 
+            y = training$classe,
+            plot = "density", 
+            ## Pass in options to xyplot() to 
+            ## make it prettier
+            scales = list(x = list(relation="free"), 
+                          y = list(relation="free")), 
+            adjust = 1.5, 
+            pch = "|", 
+            layout = c(1, 4), 
+            auto.key = list(columns = 5))
+
+# FOREARM
+farmCols <- grep("forearm$", names(training), value = TRUE)
+#transparentTheme(trans = .9)
+featurePlot(x = training[, farmCols[1:4]], 
+            y = training$classe,
+            plot = "density", 
+            ## Pass in options to xyplot() to 
+            ## make it prettier
+            scales = list(x = list(relation="free"), 
+                          y = list(relation="free")), 
+            adjust = 1.5, 
+            pch = "|", 
+            layout = c(1, 4), 
+            auto.key = list(columns = 5))
+
+# DUMBELL
+dbellCols <- grep("dumbbell$", names(training), value = TRUE)
+#transparentTheme(trans = .9)
+featurePlot(x = training[, dbellCols[1:4]], 
+            y = training$classe,
+            plot = "density", 
+            ## Pass in options to xyplot() to 
+            ## make it prettier
+            scales = list(x = list(relation="free"), 
+                          y = list(relation="free")), 
+            adjust = 1.5, 
+            pch = "|", 
+            layout = c(1, 4), 
+            auto.key = list(columns = 5))
+
+
+```
+
+
+
+## MODEL SELECTION
+Random Forest Model Training and OOB error reporting
+
+```{r}
+t.Control <- trainControl(method="cv", number = 5, allowParallel = TRUE)
+
+
+fit.model.rf <- train(classe ~ ., data = training, method = "rf", trControl = t.Control, verbose = TRUE, na.action=na.omit)
+fit.model.rf
+fit.model.rf$finalModel
+
+```
+Gradient Boosting model training
+
+```{r}
+fit.model.gbm <- train(classe ~ ., data = training, method = "gbm", trControl = t.Control, verbose = TRUE)
+fit.model.gbm
+```
+
+Confusion Matrixes are built after predicting the model over the testing data set. Accuracy estimates for each model will be used to decide which model predicts better.
+
+## PREDICT
+```{r}
+
+predict.rf <- predict(fit.model.rf, newdata = testing)
+confusionMatrix(predict.rf, testing$classe)
+
+predict.gbm <- predict(fit.model.gbm, newdata = testing)
+confusionMatrix(predict.gbm, testing$classe)
+```
+
+Further model comparison is performed throug the "resamples" function. This method confirms that the Random Forest model is a better predictor.
+
+```{r}
+# Compare model performances using resample()
+models_compare <- resamples(list(RF=fit.model.rf, GradientBoosting=fit.model.gbm))
+
+# Summary of the models performances
+summary(models_compare)
+```
+
+
+
+Finally, we apply the random forest to the validation data.
+
+```{r}
+Results <- predict(fit.model.rf, newdata=validation.data.set)
+Results
+```
+
