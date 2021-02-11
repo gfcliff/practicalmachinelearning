@@ -18,12 +18,12 @@ Feature selection was made based on several plots of the remaining variables. Th
 
 
 # How I used cross validation, 
-Probably the simplest and most widely used method for estimating prediction error is cross-validation. This method directly estimates the expected extra-sample error Err = E[L(Y, fˆ(X))], the average generalization error when the method fˆ(X) is applied to an independent test sample from the joint distribution of X and Y . As mentioned earlier, we might hope that cross-validation estimates the conditional error, with the training set T held fixed. But as we will see in Section 7.12, cross-validation typically estimates well only the expected prediction error. # Because I want to be able to estimate the out-of-sample error, I randomly split the full training data (ptrain) into a smaller training set (ptrain1) and a validation set (ptrain2) as the The test data renamed: valid_in (validate data) will stay as is and will be used later to test the prodction algorithm on the 20 cases. It should be noted that Random Forest model does not need to perform cross-validation on a testing set because... However, I performed it anyway because the GML model required thid step.
+I have performed cross validation in two different manners. In the first place, I randomly split the full training data (training.data.set) into a proper training set (training) and a testing set (testing). The testing set is an independent sample where the extra sample error is estimated. In the second place, it should be noted that Random Forest model does not need to perform cross-validation on a testing set because it uses bootstrapping to generate new samples from the training data. Through this process an alternative to the out of sample error is generated (OOB error estimate).
 
 # Expected out of sample error
 
 I will report the Random Forest´s model out of sample error as it is the one that I chose to make the final prediction.
-When the cross validation is done predicting on the testing set, the accuracy is 99,01%, thus the expected out of sample error is 0,99%. When calculated through the random forest model estimationinternal process, the OOB error estimate is 0.8%.
+When the cross validation is done predicting on the testing set, the accuracy is 99,01%, thus the expected out of sample error is 0,99%. When calculated through the random forest model estimation internal process, the OOB error estimate is 0.8%.
 
 
 # Methodological choices justification 
